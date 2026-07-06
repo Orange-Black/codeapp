@@ -22,9 +22,12 @@ jobs:
       - name: Clean local DerivedData
         run: rm -rf ./DerivedData
 
-      - name: Build main project Code App (with full log)
-        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf" -verbose 2>&1 | tee codeapp_build.log
+      - name: Remove problematic Preview Content
+        run: rm -rf "CodeApp/Preview Content" || true
 
+      - name: Build main project Code App (force link errors)
+        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf" OTHER_LDFLAGS="-Wl,-fatal_warnings" -verbose 2>&1 | tee build.log
+        
       - name: List build products (debug)
         run: ls -la ./DerivedData/Build/Products/Debug-iphoneos/
 
