@@ -22,34 +22,24 @@ jobs:
       - name: Clean local DerivedData
         run: rm -rf ./DerivedData
 
-      - name: Remove problematic Preview Content
+      - name: Remove Preview Content (CI fix)
         run: rm -rf "CodeApp/Preview Content" || true
 
-      - name: Build main project Code App (force link errors)
-        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf" OTHER_LDFLAGS="-Wl,-fatal_warnings" -verbose 2>&1 | tee build.log
-        
-      - name: List build products (debug)
-        run: ls -la ./DerivedData/Build/Products/Debug-iphoneos/
+      - name: Build main project Code App
+        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf" VALIDATE_DEVELOPMENT_ASSETS=NO OTHER_LDFLAGS="-Wl,-fatal_warnings" -verbose 2>&1 | tee build.log
 
-      - name: Package IPA (exact path)
-        run: |
-          APP_PATH="./DerivedData/Build/Products/Debug-iphoneos/Code.app"
-          if [ ! -d "$APP_PATH" ]; then echo "Code.app not found!"; exit 1; fi
-          mkdir -p Payload
-          cp -R "$APP_PATH" Payload/
-          zip -qr CodeApp-unsigned.ipa Payload
+      - name: Package IPA
+        run: APP_PATH="./DerivedData/Build/Products/Debug-iphoneos/Code.app"; if [ ! -d "$APP_PATH" ]; then echo "❌ Code.app not found"; exit 1; fi; mkdir -p Payload; cp -R "$APP_PATH" Payload/; zip -qr CodeApp-unsigned.ipa Payload
 
-      - name: Upload unsigned IPA
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: CodeApp-unsigned
           path: CodeApp-unsigned.ipa
 
-      - name: Upload all build logs (always)
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs
-          path: |
-            runestone_build.log
-            codeapp_build.log
+          name: build-log
+          path: build.log
