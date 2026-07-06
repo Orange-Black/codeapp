@@ -1,4 +1,4 @@
-name: Build Unsigned IPA (iPadOS)
+name: Build Unsigned IPA (with diagnostics)
 
 on:
   workflow_dispatch:
@@ -8,35 +8,41 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Frameworks
-        run: |
-          chmod +x downloadFrameworks.sh
-          ./downloadFrameworks.sh
+      - name: Download frameworks
+        run: chmod +x downloadFrameworks.sh && ./downloadFrameworks.sh
 
-      - name: List Schemes
-        run: xcodebuild -list -project Code.xcodeproj
+      - name: Clean DerivedData (global)
+        run: rm -rf ~/Library/Developer/Xcode/DerivedData
 
-      - name: Build .app (Fix Module Errors)
-        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_OPTIMIZATION_LEVEL="-Onone" SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf"
+      - name: Clean local DerivedData
+        run: rm -rf ./DerivedData
 
-      - name: Show full error log (if fail)
-        if: failure()
-        run: cat ~/Library/Logs/DiagnosticReports/*.crash || echo "No crash logs"
-      
-      - name: Package to IPA
-        run: |
-          APP_PATH=$(find ./DerivedData -name "*.app" -type d | head -n 1)
-          mkdir Payload
-          cp -R "$APP_PATH" Payload/
-          zip -qr CodeApp-iPad-unsigned.ipa Payload
+      - name: Build Runestone separately (with full log)
+        run: xcodebuild build -project Runestone/Runestone.xcodeproj -scheme Runestone -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf" -verbose 2>&1 | tee runestone_build.log
+        continue-on-error: true
 
-      - name: Upload IPA
+      - name: Build main project Code App (with full log)
+        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf" -verbose 2>&1 | tee codeapp_build.log
+
+      - name: Package IPA
+        run: APP_PATH=$(find ./DerivedData -name "*.app" -type d | head -n 1); if [ -z "$APP_PATH" ]; then echo "No .app found"; exit 1; fi; mkdir -p Payload; cp -R "$APP_PATH" Payload/; zip -qr CodeApp-unsigned.ipa Payload
+
+      - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: CodeApp-iPad-unsigned
-          path: CodeApp-iPad-unsigned.ipa
+          name: CodeApp-unsigned
+          path: CodeApp-unsigned.ipa
+
+      - name: Upload all build logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            runestone_build.log
+            codeapp_build.log
