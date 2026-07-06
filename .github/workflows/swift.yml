@@ -21,18 +21,8 @@ jobs:
       - name: List Schemes
         run: xcodebuild -list -project Code.xcodeproj
 
-      - name: Build .app (iPadOS ARM64)
-        run: |
-          xcodebuild build \
-            -project Code.xcodeproj \
-            -scheme CodeUI \
-            -configuration Release \
-            -destination 'generic/platform=iPadOS' \   # 明确指定 iPadOS
-            -derivedDataPath ./DerivedData \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO
+      - name: Build .app (iPadOS)
+        run: xcodebuild build -project Code.xcodeproj -scheme CodeUI -configuration Release -destination 'generic/platform=iPadOS' -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=NO
 
       - name: Package to IPA
         run: |
