@@ -22,7 +22,7 @@ jobs:
         run: xcodebuild -list -project Code.xcodeproj
 
       - name: Build .app (iPadOS)
-        run: xcodebuild build -project Code.xcodeproj -scheme CodeUI -configuration Release -destination 'generic/platform=iPadOS' -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=NO
+        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Release -destination 'generic/platform=iPadOS' -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=NO
 
       - name: Package to IPA
         run: |
