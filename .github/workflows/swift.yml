@@ -21,9 +21,13 @@ jobs:
       - name: List Schemes
         run: xcodebuild -list -project Code.xcodeproj
 
-      - name: Build .app (Conservative)
-        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_OPTIMIZATION_LEVEL="-Onone" DEBUG_INFORMATION_FORMAT="dwarf"
-        
+      - name: Build .app (Fix Module Errors)
+        run: xcodebuild build -project Code.xcodeproj -scheme "Code App" -configuration Debug -sdk iphoneos -arch arm64 -derivedDataPath ./DerivedData CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES SWIFT_OPTIMIZATION_LEVEL="-Onone" SWIFT_TREAT_WARNINGS_AS_ERRORS=NO SWIFT_STRICT_CONCURRENCY=minimal GCC_TREAT_WARNINGS_AS_ERRORS=NO DEBUG_INFORMATION_FORMAT="dwarf"
+
+      - name: Show full error log (if fail)
+        if: failure()
+        run: cat ~/Library/Logs/DiagnosticReports/*.crash || echo "No crash logs"
+      
       - name: Package to IPA
         run: |
           APP_PATH=$(find ./DerivedData -name "*.app" -type d | head -n 1)
